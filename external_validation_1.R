@@ -195,7 +195,8 @@ table_obj <- table_data %>%
 
 table_print <- table_obj %>%
   summary(text = NULL,
-          digits.pct = 3) %>% as_tibble
+          digits.pct = 3) %>% as_tibble(.name_repair = "minimal") %>%
+  rename("feature" = '')
 
 
 
@@ -540,7 +541,7 @@ monthly_outcomes <- data %>%
 	filter(outcome == 1) %>%
 	mutate(outcome_month = month(outcome_date),
 				 outcome_year = year(outcome_date)) %>%
-	group_by(outcome_month, outcome_year) %>%
+	group_by(outcome_year, outcome_month) %>%
 	summarise(outcome_rate_sweden = n()) 
 
 save(monthly_outcomes, file = "monthly_outcomes_sweden.R")
