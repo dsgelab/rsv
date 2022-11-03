@@ -9,9 +9,9 @@
 ## REQUIREMENTS
 # Following thigs should be in the data so that this script works.
 # - birth date, named as "birth_date". 
-# - outcome date, named as "outcome_date", meaning the date of RSV hospitalisation.
 # - variables should be named as in here: https://docs.google.com/spreadsheets/d/1yNZhB1EFCURMLML-zeOcIdy47iuQvdL8bTjOtVyO2yI/edit#gid=163265107
 # - The birth dates should be in between 1.6.2006 - 31.5.2020 (this is tested in the script)
+# - outcome date, named as "outcome_date", meaning the date of RSV hospitalisation - Only relevant for the definition of the peak month.
 
 
 # about the results
