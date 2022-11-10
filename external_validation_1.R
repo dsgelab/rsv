@@ -519,13 +519,19 @@ new_model_fit <- glm(data = data_train,
 	family = binomial())
 
 ## save the model object without individual level data
-# function for removing the individual level data
+#define helper function to remove unnecessary data from glm fit objects to make storing them smaller and not contain any individual-level data
 strip.glm = function(cm) {
+  
   cm$y = c()
   cm$model = c()
   cm$residuals = c()
   cm$fitted.values = c()
   cm$data = c()
+  cm$weights = c()
+  cm$linear.predictors = c()
+  cm$effects = c()
+
+  
   return(cm)
 }
 
