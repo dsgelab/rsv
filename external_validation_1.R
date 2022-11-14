@@ -494,11 +494,23 @@ for(i in 1:length(results_list)) {
 		row.names = FALSE)
 }
 
+###### Monthly outcome rate
+
+# monthly outcome rate
+monthly_outcomes <- data %>%
+	filter(outcome == 1) %>%
+	mutate(outcome_month = month(outcome_date),
+				 outcome_year = year(outcome_date)) %>%
+	group_by(outcome_year, outcome_month) %>%
+	summarise(outcome_rate_sweden = n()) 
+
+setwd(results_dir)
+save(monthly_outcomes, file = "monthly_outcomes_sweden.R")
+write.csv(monthly_outcomes, "monthly_outcomes_sweden.csv",
+	row.names = FALSE)
 
 
-
-
-###### MODEL FITTING AND COEFFICIENTS IN THE SWEDISH DATA
+###### LAST PART: MODEL FITTING AND COEFFICIENTS IN THE SWEDISH DATA
 
 # data for 2007-2017
 data_train <- data %>%
@@ -552,16 +564,5 @@ save(export_object, file = "exportable_model_fit_sweden.R")
 
 
 
-# monthly outcome rate
-monthly_outcomes <- data %>%
-	filter(outcome == 1) %>%
-	mutate(outcome_month = month(outcome_date),
-				 outcome_year = year(outcome_date)) %>%
-	group_by(outcome_year, outcome_month) %>%
-	summarise(outcome_rate_sweden = n()) 
-
-save(monthly_outcomes, file = "monthly_outcomes_sweden.R")
-write.csv(monthly_outcomes, "monthly_outcomes_sweden.csv",
-	row.names = FALSE)
 
 
