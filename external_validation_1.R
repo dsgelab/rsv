@@ -1,17 +1,26 @@
 #### SCRIPT TO TEST THE VALIDITY OF RSV PREDICTION MODEL IN THE SWEDISH DATA
 
-# First notes: 
-# - it is possible that there are problems with the date variables when loading the data to R, if the data is from STATA. So it's good to check that.
-# - Date variables are quite important for the classification of the results, they should be in R's date format. 
-# - if any problems, do not hesitate to contact Pekka Vartiainen!
 
 
-## REQUIREMENTS
-# Following thigs should be in the data so that this script works.
+### REQUIREMENTS
+# - For running the script, you need to have the model object as a file. Pekka will send it with a different message. 
+# - Save the model files to a folder, and note the file path
+# - Add 3 file paths to the script
+# 	- path to the model files
+# 	- Path to the data
+# 	- Path where results should be saved.
+#
+#
+## Following thigs should be in the data so that this script works.
+#
 # - birth date, named as "birth_date". 
 # - variables should be named as in here: https://docs.google.com/spreadsheets/d/1yNZhB1EFCURMLML-zeOcIdy47iuQvdL8bTjOtVyO2yI/edit#gid=163265107
 # - The birth dates should be in between 1.6.2006 - 31.5.2020 (this is tested in the script)
-# - outcome date, named as "outcome_date", meaning the date of RSV hospitalisation - Only relevant for the definition of the peak month.
+# - outcome date, named as "outcome_date", meaning the date of RSV hospitalisation This is only relevant for the definition of the peak month.
+
+
+#  Some further thoughts: it is possible that there are problems with the date variables when loading the data to R, if the data is from STATA. 
+# So it's good to check that. The date variables are quite important for classifying the results. 
 
 
 # about the results
@@ -33,13 +42,13 @@
 #### SET THESE FILE PATHS
 # for example: "/home/Users/downloads/"
 
-# where the data is stored
+# where the data is stored (also the file name
 path_to_data <- "..."
 
-# location of the model objects we sent
+# location of the model objects (just the path, not the file names)
 model_path <- "..."
 
-# The place where the results should be saved
+# The place where the results should be saved (just the path)
 results_dir <- "..."
 
 
@@ -57,7 +66,7 @@ library(dcurves)
 library(data.table)
 library(arsenal)
 
-## If some packages are not installed, they can be installed with the command
+## If some packages are not installed, they can be installed with running these commands
 # install.packages("dplyr")
 # install.packages("tidyr")
 # install.packages("lubridate")
@@ -73,8 +82,8 @@ library(arsenal)
 # function for standard error
 get.se <- function(x) {sqrt(var(x) / length(x))}
 
+
 ##### The data
-path_to_data 
 
 data <- fread(path_to_data) %>% 
   # change the data format to tidyverse form
