@@ -152,6 +152,20 @@ data <- data %>%
 
 
 
+# Check how many children are included for each epidemic year. 
+# This is not saved as a result, but if some years do not contain any data,
+# It might be good to check the date range. 
+#
+# If like 1 year is empty, please still send the results, we can start working with them!
+
+data %>%
+  group_by(epidemic_year) %>%
+  summarise(n = n())
+
+
+
+
+
 
 #### SUMMARY TABLE
 data
@@ -204,8 +218,9 @@ table_obj <- table_data %>%
 
 table_print <- table_obj %>%
   summary(text = NULL,
-          digits.pct = 3) %>% as_tibble(.name_repair = "minimal") %>%
-  rename("feature" = '')
+          digits.pct = 3) %>% as_tibble(.name_repair = "minimal") 
+
+names(table_print)[1] <- "feature"
 
 
 
@@ -236,6 +251,7 @@ model_fit <- get(load(paste0(model_path, "exportable_model_fit.R")))
 #### predict with the model object
 # This gives the predicted probabilities for each id
 data$prediction <- predict(model_fit, newdata = data, type = "response")
+# this creates logit predictions
 data$logit <- predict(model_fit, newdata = data)
 
 
@@ -356,15 +372,25 @@ yearly_slope <- NULL
 # the actual loop
 for(i in 2007:2020) {
   
+  
   data_for_year <- data %>%
     filter(epidemic_year == i)
   
+  # if one of the epidemic years has no data, the loop skips to next year
+  if(nrow(data_for_year) == 0) {
+    print(paste0("Skipping ", i, " because there's no data"))
+    next
+  }
+  
   # auc for each year
+  # we will also count the overall n and n_hospitalised
   this_year_auc <- data_for_year %>%
     summarise(auc = as.numeric(auc(outcome, prediction)),
               ci_low_auc = ci.auc(outcome, prediction)[1],
               ci_auc_high = ci.auc(outcome, prediction)[3],
-              epidemic_year = i)
+              epidemic_year = i,
+              n_overall = n(),
+              n_hosp = sum(outcome, na.rm = T))
   
   # bind the yearly results to the summary table 
   yearly_auc <- bind_rows(yearly_auc, this_year_auc)
@@ -384,12 +410,12 @@ for(i in 2007:2020) {
   
   # bind the yearly results to the summary table
   yearly_calib <- bind_rows(yearly_calib, this_year_calib)
-
   
-# calibration slope
+  
+  # calibration slope
   slope_fit <- glm(data = data_for_year,
-                 formula = outcome ~ logit,
-                 family = binomial())
+                   formula = outcome ~ logit,
+                   family = binomial())
   
   slope <- coef(summary(slope_fit))[2,1]
   se_slope <- coef(summary(slope_fit))[2,2]
@@ -399,15 +425,15 @@ for(i in 2007:2020) {
     ci_high = slope + 1.96*se_slope,
     ci_low = slope - 1.96*se_slope,
     epidemic_year = i)
-
- # bind results to the existing results data  
-yearly_slope <- bind_rows(yearly_slope, slope_df)
-
-# offset model for calibration in the large
+  
+  # bind results to the existing results data  
+  yearly_slope <- bind_rows(yearly_slope, slope_df)
+  
+  # offset model for calibration in the large
   offset_fit <- glm(data = data_for_year,
-                 formula = outcome ~ offset(1*logit),
-                 family = binomial())
-
+                    formula = outcome ~ offset(1*logit),
+                    family = binomial())
+  
   cil <- coef(summary(offset_fit))[1]
   se_cil <- coef(summary(offset_fit))[2]
   
@@ -416,9 +442,9 @@ yearly_slope <- bind_rows(yearly_slope, slope_df)
     ci_high = cil + 1.96*se_cil,
     ci_low = cil - 1.96*se_cil,
     epidemic_year = i)
-
- # bind the results to the existing results data
-yearly_intercept <- bind_rows(yearly_intercept, cil_df)
+  
+  # bind the results to the existing results data
+  yearly_intercept <- bind_rows(yearly_intercept, cil_df)
   
 }
 
@@ -510,6 +536,9 @@ write.csv(monthly_outcomes, "monthly_outcomes_sweden.csv",
 	row.names = FALSE)
 
 
+
+
+
 ###### LAST PART: MODEL FITTING AND COEFFICIENTS IN THE SWEDISH DATA
 
 # data for 2007-2017
@@ -561,8 +590,5 @@ export_object <- strip.glm(new_model_fit)
 
 setwd(results_dir)
 save(export_object, file = "exportable_model_fit_sweden.R")
-
-
-
 
 
