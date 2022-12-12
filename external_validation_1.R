@@ -56,6 +56,7 @@ library(rms)
 library(dcurves)
 library(data.table)
 library(arsenal)
+library(tibble)
 
 ## If some packages are not installed, they can be installed with the command
 # install.packages("dplyr")
