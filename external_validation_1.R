@@ -179,6 +179,41 @@ table_data <- data %>%
                   any_severe_chd, 
                   asd_or_vsd_only), .fn = ~ as.factor(.)))
 
+complete_table_data <- data %>%
+  filter(!is.na(gest_days)&
+          !is.na(weight_sd)&
+          !is.na(mother_age)&
+          !is.na(smoking_neodg)) %>%
+  mutate(gw_cat = case_when(
+    gest_days/7 >= 37 ~ "Term (>37)",
+    gest_days/7 < 37 & gest_days/7 >= 33 ~ "33-37",
+    gest_days/7 < 33 & gest_days/7 >= 29 ~ "29-33",
+    gest_days/7 < 29 ~ "<29",
+    is.na(gest_days) ~ NA_character_,
+    TRUE ~ "something else?"
+  )) %>%
+  mutate(weight_cat = case_when(
+    weight_sd < -2 ~ "<-2 SD",
+    weight_sd >= -2 & weight_sd <= 2 ~ "Within 2SD",
+    weight_sd > 2 ~ ">+2 SD",
+    is.na(weight_sd) ~ NA_character_,
+    TRUE ~ "something else?"
+  )) %>%
+  mutate(across(c(outcome, 
+                  male_gender, 
+                  weight_cat, 
+                  twin, 
+                  sib_0_4, 
+                  sib_4_7, 
+                  down, 
+                  sib_resp_hosp,
+                  smoking_neodg,
+                  term_breathing,
+                  q39_confirmed, 
+                  any_family_asthma, 
+                  any_severe_chd, 
+                  asd_or_vsd_only), .fn = ~ as.factor(.)))
+
 
 
 mycontrols  <- tableby.control(test=FALSE, 
@@ -194,12 +229,25 @@ table_obj <- table_data %>%
             twin + sib_0_4 + sib_4_7 + down + sib_resp_hosp + smoking_neodg + 
             term_breathing + q39_confirmed + any_family_asthma + any_severe_chd + asd_or_vsd_only)
 
+complete_table_obj <- complete_table_data %>%
+  tableby(data = .,
+          control = mycontrols,
+          ~ outcome + gw_cat + weight_cat + mother_age +  male_gender + 
+            twin + sib_0_4 + sib_4_7 + down + sib_resp_hosp + smoking_neodg + 
+            term_breathing + q39_confirmed + any_family_asthma + any_severe_chd + asd_or_vsd_only)
+
 table_print <- table_obj %>%
   summary(text = NULL,
           digits.pct = 3) %>% as_tibble(.name_repair = "minimal") 
 
-names(table_print)[1] <- "feature"
+complete_table_print <- complete_table_obj %>%
+  summary(text = NULL,
+          digits.pct = 3) %>% as_tibble(.name_repair = "minimal") 
 
+
+# rename first column of table object
+names(table_print)[1] <- "feature"
+names(complete_table_print)[1] <- "feature"
 
 
 
@@ -518,7 +566,9 @@ results_list <- list(
   # calibration slope each year
   yearly_slope = yearly_slope,
   # table object
-  table_print = table_print)
+  table_print = table_print,
+  # table object with only complete data
+  complete_table_print = complete_table_print)
 
 
 # set the place for saving the files
@@ -795,9 +845,3 @@ compare_top10_to_all <- left_join(all_hosps, prevented_hosps) %>%
 setwd(results_dir)
 save(result_frame, file = "nnt_results.R")
 save(compare_top10_to_all, file = "nnt_in_10%_cutoff.R")
-
-
-
-
-
-
