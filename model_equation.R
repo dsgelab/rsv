@@ -20,6 +20,7 @@
 
 ## The 'pmax' function chooses the larger of the two values. 
 ## Here, the interpretation is that if the knot value subtracted from the variable value is less than 0, 0 should be used in this term.
+## The exponentiated term is always 0 or greater
 
 
 # Months from birth to next estimated epidemic peak ("dist")
