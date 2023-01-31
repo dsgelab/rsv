@@ -1,5 +1,5 @@
 
-## This is the regression model equation for the clinical prediction model for probability of RSV hospitalisation in infants younger than 1 year.
+## This is the logistic regression model equation for the clinical prediction model for probability of RSV hospitalisation in infants younger than 1 year.
 
 
 # To use the equation, use respective variable values in the place of names
