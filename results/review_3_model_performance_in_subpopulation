@@ -1,0 +1,156 @@
+# review 2 model coefficients
+
+library(data.table)
+library(feather)
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(lubridate)
+library(stringr)
+library(rms)
+library(pROC)
+
+
+
+
+
+
+
+
+
+
+################################################################################################################################################################################
+# load the data
+################################################################################################################################################################################
+predict_datapath <- "/data/projects/project_pvartiai/rsv/modeling/"
+comp_datapath <- "/data/projects/project_pvartiai/rsv/predictors/"
+val_path <- "/data/projects/project_pvartiai/rsv/validation_data/"
+
+
+# load development dataset
+# this contains the traditional outcome.
+compact_data <- fread(paste0(predict_datapath, 
+                             "development_set_only_feasible_variables.csv")) %>%
+  as_tibble %>%
+  # add birth month variable to the predict data 
+  mutate(birth_month = as.numeric(month(LAPSEN_SYNTYMAPVM))) 
+
+recent_data <- compact_data %>%
+  filter(epidemic_year > 2006)
+
+
+test_set <- fread(paste0(val_path, "validation_set_regression.csv")) %>%
+  as_tibble()
+
+# data related to congenital diseases
+hilmo_original_kids <- fread("/data/projects/project_pvartiai/rsv/wrangle/hilmo_original_kids.csv") %>%
+  as_tibble()
+
+# load hilmo diagnoses
+hilmo_orig_dg_kids <- fread("/data/projects/project_pvartiai/rsv/wrangle/hilmo_orig_dg_kids.csv") %>%
+  as_tibble()
+
+
+# all_data <- bind_rows(recent_data, test_set)
+
+
+# load model objects and knots and formula
+setwd("/data/projects/project_pvartiai/rsv/functions/model/")
+
+final_form_simple <- get(load("/data/projects/project_pvartiai/rsv/functions/model/final_formula_object_nointeract.R"))
+load("rcsknots_motherage.R")
+load("rcsknots_dist.R") 
+load("rcsknots_gestdays.R")
+load("rcsknots_weightsd.R")
+visualise_fit <- get(load("final_model_fit.R"))
+
+setwd("/data/projects/project_pvartiai/rsv/functions/")
+load("keylist_final_variable_names.R")
+
+keylist_final %>% print(n = 100)
+
+keylist_final$longname[keylist_final$feature == "gest_days"] <- "Gestational age\nat birth, weeks"
+keylist_final$longname[keylist_final$feature == "dist"] <- "Months from birth to\nnext epidemic peak"
+
+
+
+################################################################################################################################################################################
+# MODEL PERFORMANCE IN SUBPOPULATION OF HEALTHY TERM
+################################################################################################################################################################################
+# we have already the old model
+visualise_fit
+
+# do a formula object for only healthy term infants
+healthy_term_form <- update(final_form_simple, . ~ . - q39_confirmed - down - any_severe_chd - asd_or_vsd_only - rcs(gest_days, parms = rcsknots_gestdays))
+
+# create subpopulation of healthy term infants in TRAIN set
+subpop_train <- recent_data %>%
+  # exclude all with congenital conditions of model variables
+  filter(down == 0 &
+           q39_confirmed == 0 &
+           any_severe_chd == 0 & 
+           asd_or_vsd_only == 0 &
+           # exclude if born before GW37 (Weeks of gestation)
+           gest_days >= 37*7)
+
+# do a new model based on only healthy term infants
+# this we only use for exploration.
+healthy_term_fit <- glm(formula = healthy_term_form,
+                        data = subpop_train,
+                        family = binomial())
+
+
+
+# create subpopulation of healthy term infants in test set
+subpop_test <- test_set %>%
+  # exclude all with congenital conditions of model variables
+  filter(down == 0 &
+           q39_confirmed == 0 &
+           any_severe_chd == 0 & 
+           asd_or_vsd_only == 0 &
+           # exclude if born before GW35 (Weeks of gestation)
+           gest_days >= 37*7)
+
+#predictions, both for full test set and for subpopulation of healthy kids
+test_set$predict <- predict(visualise_fit, newdata = test_set, type = "response")
+subpop_test$predict <- predict(visualise_fit, newdata = subpop_test, type = "response")
+
+
+subpop_auc <- ci.auc(subpop_test$outcome, subpop_test$predict)
+full_auc <- ci.auc(test_set$outcome, test_set$predict)
+
+full_auc[2]
+subpop_auc[2]
+
+
+# data comparing the aucs
+auc_compare_frame <- data.frame(
+  population = c("Full test set", "Healthy term children"),
+  auc = c(full_auc[2], subpop_auc[2]),
+  auc_low = c(full_auc[1], subpop_auc[1]),
+  auc_high = c(full_auc[3], subpop_auc[3]),
+  n = c(nrow(test_set), nrow(subpop_test))
+) %>%
+  mutate(population = paste0(population, "\n(n=", n, ")"))
+
+healthy_auc_plot <- auc_compare_frame %>%
+  ggplot(., aes(
+    x = population,
+    y = auc,
+    ymin = auc_low,
+    ymax = auc_high
+  )) + 
+  geom_point() + 
+  geom_errorbar(width = 0.2) + 
+  scale_y_continuous(limits = c(0.75, 0.79),
+                     expand = c(0,0)) + 
+  theme_bw(base_size = 14) + 
+  labs(y = "C-statistic",
+       x = "Population")
+
+
+healthy_auc_plot
+
+
+
+
