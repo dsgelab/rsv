@@ -1,1 +1,1 @@
-This contains the external validation script used to test the model in the Swedish data.
+This contains the external validation script used to test the model in the Swedish data. Note that this script is specific to Swedish data and requires access to the model objects, which are not by default publicly available. We recommend using the model equation available in the main directory for any other validation work.
